@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wefox-challenge
+  labels:
+    app: wefox-challenge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wefox-challenge
+  template:
+    metadata:
+      labels:
+        app: wefox-challenge
+    spec:
+      containers:
+      - name: wefox-challenge
+        image: hashicorp/http-echo
+        args:
+          - "-text=hello world"
+        ports:
+        - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wefox-challenge-serv
+spec:
+  selector:
+    app: wefox-challenge
+  type: NodePort
+  ports:
+  - protocol: TCP
+    port: 8081
+    targetPort: 5678
+    nodePort: 8081
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: hello.wefox.localhost
+    http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+           service:
+             name: wefox-challenge-serv
+             port:
+               number: 8081
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ingress
+spec:
+  selector:
+    matchLabels:
+      app: nginx-ingress
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-ingress
+    spec:
+      containers:
+      - name: nginx-ingress
+        image: nginx
+        ports:
+        - name: http
+          containerPort: 80
